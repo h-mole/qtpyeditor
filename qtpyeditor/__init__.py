@@ -5,4 +5,4 @@
 # @File: __init__.py
 
 from .highlighters import PythonHighlighter
-# from .editor import PMGPythonEditor
+from .codeeditor import PMGPythonEditor

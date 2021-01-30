@@ -24,10 +24,19 @@ email:1295752786@qq.com
 
 - Autocomplete with background QThread
 
-### Functions not supported yet
+- Add Hints to code
+    - For example, the editor could change background color to red if an undefined variable is found.
 
+### Functions not supported yet -- The items below are also TODOs
+ 
 - Find and Replace
-- 
+  
+- Add Markers (especially the red dot for debugging)
+
+- Fold Code
+
+- Highlight Hyperlinks
+
 
 ## Software Architecture
 Coding on pure Python, calling the Qt-bindings.
@@ -44,10 +53,11 @@ PyQt5/PySide2 is installed. So please make sure you have one qt-python binding i
 in the site-packages.
 
 
-## Instructions
+## Run Editor
 1. run command:
 ```shell
 python test.py
 ```
-2. And you will see an simple editor shown. 
+2. And you will see an simple editor shown.   
+
 ![](figures/python_editor.png)

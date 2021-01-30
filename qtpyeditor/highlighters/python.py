@@ -261,8 +261,6 @@ class PythonHighlighter(BaseHighlighter):
         QApplication.restoreOverrideCursor()
         t1 = time.time()
         print(t1 - t0, 'time.time,elapsed for rendering code', self.counter)
-        import traceback
-        traceback.print_stack()
 
     def registerHighlight(self, line_no: int, start: int, length: int, marker: int, hint: str):
         """
