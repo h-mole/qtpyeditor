@@ -32,4 +32,4 @@ in the site-packages.
 python test.py
 ``` 
 2. And you will see an simple editor shown. 
-
+![](figures/python_editor.png)
