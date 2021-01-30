@@ -1,37 +1,35 @@
-# pyminer_comm
+# qtpyeditor
 
-#### 介绍
-PyMiner用于和主程序传输数据以及操纵主程序的库
+## Description
+### What is qtpyeditor
+qtpyeditor is an simple editor in pure Python-Qt binding for both PyQt5 and PySide2.
 
-#### 软件架构
-软件架构说明
+The in order to solve the problem that PySide2 lacks QScintilla bindings. 
+ 
+This package is developed by PyMiner develop team to support the software of PyMiner,
+and the license should follow the qt-bindings' license.
+if PyQt5, license should be GPL; or if PySide2, it should under **LGPL** License.
+
+email:1295752786@qq.com
+
+### Software Architecture
+Software architecture description
+
+## Installation
+
+1.  install dependencies
+```shell
+pip install -r requirements.txt
+```
+NOTE: qtpy is an upper interface on PyQt5/PySide2, which works only if either of
+PyQt5/PySide2 is installed. So please make sure you have one qt-python binding installed
+in the site-packages.
 
 
-#### 安装教程
+## Instructions
+1. run command:
+```shell
+python test.py
+``` 
+2. And you will see an simple editor shown. 
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
