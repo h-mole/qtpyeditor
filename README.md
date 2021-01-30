@@ -5,15 +5,33 @@
 qtpyeditor is an simple editor in pure Python-Qt binding for both PyQt5 and PySide2.
 
 The in order to solve the problem that PySide2 lacks QScintilla bindings. 
- 
+
+**NOTE**: This repository is just **an EDITOR, not an Full-functional IDE** ! 
+
+### Developers and License
+
 This package is developed by PyMiner develop team to support the software of PyMiner,
 and the license should follow the qt-bindings' license.
-if PyQt5, license should be GPL; or if PySide2, it should under **LGPL** License.
+
+if PyQt5, license should be **GPL**; or if PySide2, it should under **LGPL** License.
 
 email:1295752786@qq.com
+### Functions
 
-### Software Architecture
-Software architecture description
+- Line numbering
+
+- Code Highlighting and Style-Setting
+
+- Autocomplete with background QThread
+
+### Functions not supported yet
+
+- Find and Replace
+- 
+
+## Software Architecture
+Coding on pure Python, calling the Qt-bindings.
+
 
 ## Installation
 
@@ -30,6 +48,6 @@ in the site-packages.
 1. run command:
 ```shell
 python test.py
-``` 
+```
 2. And you will see an simple editor shown. 
 ![](figures/python_editor.png)
