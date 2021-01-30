@@ -1,0 +1,23 @@
+Metadata-Version: 1.1
+Name: qtpyeditor
+Version: 0.1.1
+Summary: An simple editor in pure Python-Qt binding for both PyQt5 and PySide2 to sove the problem that PySide2 lacks QScintilla bindings.
+This package is developed by PyMiner developing team.
+Home-page: https://gitee.com/hzy15610046011/pyminer_comm
+Author: hzy15610046011
+Author-email: 1295752786@qq.com
+License: LGPL
+Description: UNKNOWN
+Platform: all
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: Implementation
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Software Development :: Libraries
