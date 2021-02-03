@@ -316,7 +316,6 @@ class PMGBaseEditor(QWidget):
         self.setWindowTitle(self.filename())
         self.last_save_time = time.time()
         self.set_modified(False)
-        print('modified',self.modified())
 
     def set_encoding(self, encoding: str):
         """

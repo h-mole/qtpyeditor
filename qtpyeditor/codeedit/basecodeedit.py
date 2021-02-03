@@ -86,7 +86,9 @@ class PMBaseCodeEdit(QCodeEditor):
         self.filename = '*'
         self.path = ''
         self.modified = False
+        self._last_text = ''
         self.highlighter: 'PythonHighlighter' = None
+        self.text_modified_signal_allowed = True
         self.setTabChangesFocus(False)
 
         self.textChanged.connect(self.on_text_changed)
@@ -117,7 +119,9 @@ class PMBaseCodeEdit(QCodeEditor):
 
                 action: int = self.update_request_queue.get()
                 if action == self.UPDATE_CODE_HIGHLIGHT:
+                    self.text_modified_signal_allowed = False
                     self.highlighter.rehighlight()
+                    self.text_modified_signal_allowed = True
 
     def focusInEvent(self, event: 'QFocusEvent') -> None:
         self.signal_focused_in.emit(event)
@@ -150,10 +154,15 @@ class PMBaseCodeEdit(QCodeEditor):
         :return:
         """
         if self.modified == True:
-            return
+            pass
         else:
-            self.modified = True
-            self.signal_text_modified.emit()
+            if self.toPlainText() != self._last_text:
+                self.modified = True
+                if self.text_modified_signal_allowed:
+                    self.signal_text_modified.emit()
+            else:
+                pass
+        self._last_text = self.toPlainText()
 
     def _insert_autocomp(self, e: QModelIndex = None):
         row = self.popup_hint_widget.currentRow()
