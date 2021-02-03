@@ -1,2 +1,3 @@
 qtpy
 jedi
+pmgwidgets

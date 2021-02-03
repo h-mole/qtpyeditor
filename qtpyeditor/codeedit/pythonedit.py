@@ -9,7 +9,7 @@ from typing import Tuple, List
 
 from qtpy.QtGui import QTextCursor, QMouseEvent, QKeyEvent
 from qtpy.QtWidgets import QLabel, QListWidgetItem, QApplication
-from qtpy.QtCore import QPoint, QModelIndex
+from qtpy.QtCore import QPoint, QModelIndex, Signal
 
 from qtpyeditor.codeedit import PMBaseCodeEdit
 from qtpyeditor.highlighters import PythonHighlighter
@@ -26,9 +26,6 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         # self.modified = True
         self.highlighter = PythonHighlighter(self.document())
         self.setTabChangesFocus(False)
-
-        self.textChanged.connect(self.on_text_changed)
-
         self.autocomp_thread = AutoCompThread()
         self.autocomp_thread.trigger.connect(self.on_autocomp_signal_received)
         self.autocomp_thread.start()
@@ -68,11 +65,7 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         self.popup_hint_widget.setGeometry(
             cursor_pos.x() + 5, cursor_pos.y() + 20, 150, 200)
         self._request_autocomp()
-        if self.modified == True:
-            return
-        else:
-            self.modified = True
-            self.updateUi()
+
 
     def _insert_autocomp(self, e: QModelIndex = None):
         row = self.popup_hint_widget.currentRow()
@@ -128,13 +121,6 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
     def _get_textcursor_pos(self) -> Tuple[int, int]:
         return self.textCursor().blockNumber(), self.textCursor().columnNumber()
 
-    def updateUi(self):
-        if self.modified:
-            text = '未保存'
-        else:
-            text = '已保存'
-        self.doc_tab_widget.modified_status_label.setText(text)
-
     def mousePressEvent(self, a0: QMouseEvent) -> None:
         # PluginInterface.show_tool_bar('code_editor_toolbar')
         if self.popup_hint_widget.isVisible():
@@ -184,10 +170,8 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         super(PMPythonCodeEdit, self).mouseMoveEvent(e)
         cursor: QTextCursor = self.cursorForPosition(e.pos())
 
-        t0 = time.time()
         if not self.should_check_code():
             return
-        t1 = time.time()
         line, col = cursor.blockNumber(), cursor.positionInBlock()
         flag = False
         text = ''
@@ -209,7 +193,6 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
 
         self.hint_widget.setText(text.strip())
         self.hint_widget.setVisible(flag)
-        t2 = time.time()
 
     def should_check_code(self) -> bool:
         """

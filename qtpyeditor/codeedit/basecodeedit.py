@@ -72,6 +72,7 @@ class PMBaseCodeEdit(QCodeEditor):
     signal_save = Signal()
     signal_focused_in = Signal(QFocusEvent)
     signal_idle = Signal()
+    signal_text_modified = Signal()  # If status changed from unmodified to modified, this signal emits.
 
     UPDATE_CODE_HIGHLIGHT = 1
 
@@ -84,7 +85,7 @@ class PMBaseCodeEdit(QCodeEditor):
         self.doc_tab_widget: 'PMGPythonEditor' = parent
         self.filename = '*'
         self.path = ''
-        self.modified = True
+        self.modified = False
         self.highlighter: 'PythonHighlighter' = None
         self.setTabChangesFocus(False)
 
@@ -144,16 +145,15 @@ class PMBaseCodeEdit(QCodeEditor):
         self.popup_hint_widget.hide_autocomp()
 
     def on_text_changed(self):
-        self._get_textcursor_pos()
-        cursor_pos = self.cursorRect()
-        self.popup_hint_widget.setGeometry(
-            cursor_pos.x() + 5, cursor_pos.y() + 20, 150, 200)
-        self._request_autocomp()
+        """
+        文字发生改变时的方法
+        :return:
+        """
         if self.modified == True:
             return
         else:
             self.modified = True
-            self.updateUi()
+            self.signal_text_modified.emit()
 
     def _insert_autocomp(self, e: QModelIndex = None):
         row = self.popup_hint_widget.currentRow()
@@ -162,7 +162,7 @@ class PMBaseCodeEdit(QCodeEditor):
             self.insertPlainText(self.popup_hint_widget.autocomp_list[row])
             textcursor: QTextCursor = self.textCursor()
             word = self.get_word(textcursor.blockNumber(), textcursor.columnNumber())
-            print('word',word)
+            print('word', word)
             if word in self.highlighter.KEYWORDS:
                 self.insertPlainText(' ')
             self.popup_hint_widget.hide()
@@ -210,13 +210,6 @@ class PMBaseCodeEdit(QCodeEditor):
 
     def _get_textcursor_pos(self) -> Tuple[int, int]:
         return self.textCursor().blockNumber(), self.textCursor().columnNumber()
-
-    def updateUi(self):
-        if self.modified:
-            text = ''  # '未保存'
-        else:
-            text = ''  # '已保存'
-        self.doc_tab_widget.modified_status_label.setText(text)
 
     def mousePressEvent(self, a0: QMouseEvent) -> None:
         if self.popup_hint_widget.isVisible():
@@ -621,7 +614,8 @@ class PMBaseCodeEdit(QCodeEditor):
     def rehighlight(self):
         self.update_request_queue.put(self.UPDATE_CODE_HIGHLIGHT)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     app = QApplication([])
     e = PMBaseCodeEdit()
     e.show()

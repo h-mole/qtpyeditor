@@ -44,10 +44,12 @@ from typing import TYPE_CHECKING, List, Iterable, Dict, Set, Tuple, Any
 from qtpy.QtGui import QIcon, QKeySequence, QTextDocument, QTextCursor, QTextBlock
 from qtpy.QtCore import QDir, QCoreApplication, Qt, QPoint, Signal, QTranslator, QLocale
 from qtpy.QtWidgets import QWidget, QMessageBox, QFileDialog, QAction, QShortcut, QDialog, QVBoxLayout, QPushButton, \
-    QHBoxLayout, QApplication
+    QHBoxLayout, QApplication, QLabel
 
 from pmgwidgets import in_unit_test
 from pmgwidgets.widgets.composited import PMGPanel
+if TYPE_CHECKING:
+    from qtpyeditor.codeedit import PMBaseCodeEdit
 
 logger = logging.getLogger(__name__)
 
@@ -159,11 +161,39 @@ class PMGBaseEditor(QWidget):
         self._extension_names: List[str] = []  # 该编辑器支持的文件名
         self._indicator_dict: Dict[str, str] = {}
 
+        self.line_number_area = QWidget()
+        self.line_number_area.setMaximumHeight(60)
+        self.line_number_area.setMinimumHeight(20)
+        self.status_label = QLabel()
+        line_number_area_layout = QHBoxLayout()
+        line_number_area_layout.addWidget(self.status_label)
+        line_number_area_layout.setContentsMargins(0, 0, 0, 0)
+        self.line_number_area.setLayout(line_number_area_layout)
+        self.modified_status_label = QLabel()
+        self.modified_status_label.setText('')
+        line_number_area_layout.addWidget(self.modified_status_label)
+
     def set_edit(self, edit: 'PMBaseCodeEdit'):
         self.text_edit = edit
         self.signal_focused_in = self.text_edit.signal_focused_in
-        edit.signal_save.connect(self.save)
+        self.text_edit.signal_save.connect(self.save)
+        self.text_edit.signal_text_modified.connect(lambda: self.slot_modification_changed(True))
+        self.text_edit.cursorPositionChanged.connect(self.show_cursor_pos)
         self.find_dialog = FindDialog(parent=self, text_editor=self)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+        self.layout().addWidget(self.text_edit)
+        self.layout().addWidget(self.status_label)
+
+    def layout(self) -> QVBoxLayout:
+        return super(PMGBaseEditor, self).layout()
+
+    def show_cursor_pos(self):
+        row = self.text_edit.textCursor().block().blockNumber()
+        col = self.text_edit.textCursor().columnNumber()
+        self.status_label.setText(
+            '行：{row},列:{col}'.format(row=row + 1, col=col + 1))
 
     def set_shortcut(self):
         pass
@@ -254,7 +284,9 @@ class PMGBaseEditor(QWidget):
         :type: bool
         :return: None
         """
-        pass
+        self._modified = modified
+        self.text_edit.modified = modified
+        self.slot_modification_changed(modified)
 
     def load_file(self, path: str) -> None:
         """
@@ -283,6 +315,8 @@ class PMGBaseEditor(QWidget):
         self._path = path
         self.setWindowTitle(self.filename())
         self.last_save_time = time.time()
+        self.set_modified(False)
+        print('modified',self.modified())
 
     def set_encoding(self, encoding: str):
         """
@@ -339,12 +373,10 @@ class PMGBaseEditor(QWidget):
         :return:
         """
         self.save()
-        self._modified = False
-        self.slot_modification_changed(self._modified)
+        self.set_modified(False)
 
     def slot_text_changed(self) -> None:
-        self._modified = True
-        self.slot_modification_changed(self._modified)
+        self.set_modified(True)
 
     def is_temp_file(self) -> bool:
         """
@@ -383,7 +415,6 @@ class PMGBaseEditor(QWidget):
                 fp.write(self.text().encode('utf-8', errors='ignore'))
 
             self.setWindowTitle(os.path.basename(path))
-            self.slot_modification_changed(False)
             self.set_modified(False)
             self.last_save_time = time.time()
             return True

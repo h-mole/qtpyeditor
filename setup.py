@@ -10,7 +10,7 @@ if os.path.exists(dist_path):
     shutil.rmtree(dist_path)
 setup(
     name='qtpyeditor',
-    version='0.1.2',
+    version='0.2.0',
     description=(
             'An simple editor in pure Python-Qt binding for both PyQt5 and PySide2 to sove the problem that PySide2 lacks QScintilla bindings.\n' +
             'This package is developed by PyMiner developing team.'
@@ -38,5 +38,5 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Topic :: Software Development :: Libraries'
-    ],
+    ], include_package_data=True
 )

@@ -23,35 +23,8 @@ from qtpyeditor.codeedit import PMBaseCodeEdit, PMPythonCodeEdit
 class PMGPythonEditor(PMGBaseEditor):
     def __init__(self, parent: 'PMGPythonEditor' = None):
         super().__init__(parent=parent)
-        self.edit = PMPythonCodeEdit(self)
-        self.line_number_area = QWidget()
-        self.line_number_area.setMaximumHeight(60)
-        self.line_number_area.setMinimumHeight(20)
-        self.status_label = QLabel()
-        line_number_area_layout = QHBoxLayout()
-        line_number_area_layout.addWidget(self.status_label)
-        line_number_area_layout.setContentsMargins(0, 0, 0, 0)
-        self.line_number_area.setLayout(line_number_area_layout)
-        self.modified_status_label = QLabel()
-        self.modified_status_label.setText('')
-        line_number_area_layout.addWidget(self.modified_status_label)
-
-        self.edit.cursorPositionChanged.connect(self.show_cursor_pos)
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.edit)
-        layout.addWidget(self.line_number_area)
-
-        self.setLayout(layout)
-
-        self.set_edit(self.edit)
-        self.text_edit: PMPythonCodeEdit = self.edit
-
-    def show_cursor_pos(self):
-        row = self.edit.textCursor().block().blockNumber()
-        col = self.edit.textCursor().columnNumber()
-        self.status_label.setText(
-            '行：{row},列:{col}'.format(row=row + 1, col=col + 1))
+        edit = PMPythonCodeEdit(self)
+        self.set_edit(edit)
 
     def update_settings(self, settings: Dict[str, str]):
         pass
