@@ -120,8 +120,10 @@ class PMBaseCodeEdit(QCodeEditor):
                 action: int = self.update_request_queue.get()
                 if action == self.UPDATE_CODE_HIGHLIGHT:
                     self.text_modified_signal_allowed = False
+                    focus_widget: QWidget = QApplication.focusWidget()
                     self.highlighter.rehighlight()
                     self.text_modified_signal_allowed = True
+                    focus_widget.setFocus()
 
     def focusInEvent(self, event: 'QFocusEvent') -> None:
         self.signal_focused_in.emit(event)
