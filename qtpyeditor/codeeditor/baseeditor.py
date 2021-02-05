@@ -224,8 +224,6 @@ class PMGBaseEditor(QWidget):
 
     def set_edit(self, edit: 'PMBaseCodeEdit'):
         self.text_edit = edit
-        self._init_actions()
-        self._init_signals()
         self.signal_focused_in = self.text_edit.signal_focused_in
         self.text_edit.signal_save.connect(self.save)
         self.text_edit.signal_text_modified.connect(lambda: self.slot_modification_changed(True))
