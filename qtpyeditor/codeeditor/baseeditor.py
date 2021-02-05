@@ -48,10 +48,58 @@ from qtpy.QtWidgets import QWidget, QMessageBox, QFileDialog, QAction, QShortcut
 
 from pmgwidgets import in_unit_test
 from pmgwidgets.widgets.composited import PMGPanel
+from qtpyeditor.ui.gotoline import Ui_DialogGoto
+
 if TYPE_CHECKING:
     from qtpyeditor.codeedit import PMBaseCodeEdit
 
 logger = logging.getLogger(__name__)
+
+
+class GotoLineDialog(QDialog, Ui_DialogGoto):
+    def __init__(self, parent=None):
+        super(GotoLineDialog, self).__init__(parent)
+        self.current_line = -1
+        self.max_row_count = 0
+        self.setupUi(self)
+        self.buttonBox.accepted.connect(self.run_goto)
+        self.buttonBox.rejected.connect(self.reject)
+
+    def set_max_row_count(self, length: int):
+        """
+        设置最大可跳转的行数
+        :param length:
+        :return:
+        """
+        self.max_row_count = length
+
+    def set_current_line(self, line: int):
+        """
+        line：从0开始
+        :param line:
+        :return:
+        """
+        self.current_line = line
+        self.lineEdit.setText(str(line + 1))
+
+    def run_goto(self):
+        """
+        跳转到行
+        :return:
+        """
+        text = self.lineEdit.text()
+        if not text.isdecimal():
+            QMessageBox.warning(self, self.tr('Input Value Error'), self.tr('Cannot convert \'%s\' to integer.') % text)
+            return
+        line = int(text)
+        if not 0 <= line < self.max_row_count:
+            QMessageBox.warning(self, self.tr('Input Value Error'),
+                                self.tr('Line Number {line} out of range!').format(line=line))
+            return
+        self.accept()
+
+    def get_line(self) -> int:
+        return int(self.lineEdit.text())
 
 
 class FindDialog(QDialog):
@@ -154,6 +202,7 @@ class PMGBaseEditor(QWidget):
 
         super().__init__(parent)
         self.find_dialog: 'FindDialog' = None
+        self.goto_line_dialog: 'GotoLineDialog' = None
         self.last_save_time = 0
         self._path = ''
         self._modified = False
@@ -175,11 +224,14 @@ class PMGBaseEditor(QWidget):
 
     def set_edit(self, edit: 'PMBaseCodeEdit'):
         self.text_edit = edit
+        self._init_actions()
+        self._init_signals()
         self.signal_focused_in = self.text_edit.signal_focused_in
         self.text_edit.signal_save.connect(self.save)
         self.text_edit.signal_text_modified.connect(lambda: self.slot_modification_changed(True))
         self.text_edit.cursorPositionChanged.connect(self.show_cursor_pos)
         self.find_dialog = FindDialog(parent=self, text_editor=self)
+        self.goto_line_dialog = GotoLineDialog(parent=self)
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
@@ -375,7 +427,7 @@ class PMGBaseEditor(QWidget):
         self.set_modified(False)
 
     def slot_text_changed(self) -> None:
-        self.set_modified(True)
+        pass
 
     def is_temp_file(self) -> bool:
         """
@@ -669,7 +721,11 @@ class PMGBaseEditor(QWidget):
         self.find_dialog.show()
 
     def slot_goto_line(self):
-        pass
+        self.goto_line_dialog.set_current_line(self.text_edit.textCursor().blockNumber())
+        self.goto_line_dialog.set_max_row_count(self.text_edit.blockCount())
+        ret = self.goto_line_dialog.exec_()
+        if ret:
+            self.goto_line(self.goto_line_dialog.get_line())
 
     def set_indicators(self, msg, clear=True):
         """
@@ -685,3 +741,12 @@ class PMGBaseEditor(QWidget):
             self.text_edit.load_color_scheme({'keyword': '#101e96'})
         else:
             raise ValueError('unrecognized input color scheme name %s' % color_scheme_name)
+
+    def slot_code_format(self):
+        pass
+
+    def slot_code_run(self):
+        pass
+
+    def slot_code_sel_run(self):
+        pass

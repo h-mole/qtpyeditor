@@ -623,6 +623,9 @@ class PMBaseCodeEdit(QCodeEditor):
     def rehighlight(self):
         self.update_request_queue.put(self.UPDATE_CODE_HIGHLIGHT)
 
+    def textCursor(self) -> QTextCursor:
+        return super(PMBaseCodeEdit, self).textCursor()
+
 
 if __name__ == '__main__':
     app = QApplication([])
