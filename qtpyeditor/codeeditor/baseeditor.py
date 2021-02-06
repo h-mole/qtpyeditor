@@ -41,14 +41,15 @@ import re
 import time
 from itertools import groupby
 from typing import TYPE_CHECKING, List, Iterable, Dict, Set, Tuple, Any
-from qtpy.QtGui import QIcon, QKeySequence, QTextDocument, QTextCursor, QTextBlock
-from qtpy.QtCore import QDir, QCoreApplication, Qt, QPoint, Signal, QTranslator, QLocale
+from qtpy.QtGui import QIcon, QKeySequence, QTextDocument, QTextCursor, QTextBlock, QDropEvent
+from qtpy.QtCore import QDir, QCoreApplication, Qt, QPoint, Signal, QTranslator, QLocale, QUrl
 from qtpy.QtWidgets import QWidget, QMessageBox, QFileDialog, QAction, QShortcut, QDialog, QVBoxLayout, QPushButton, \
     QHBoxLayout, QApplication, QLabel
 
 from pmgwidgets import in_unit_test
 from pmgwidgets.widgets.composited import PMGPanel
 from qtpyeditor.ui.gotoline import Ui_DialogGoto
+from qtpyeditor.codeeditor.abstracteditor import PMAbstractEditor
 
 if TYPE_CHECKING:
     from qtpyeditor.codeedit import PMBaseCodeEdit
@@ -187,8 +188,9 @@ class FindDialog(QDialog):
         return False
 
 
-class PMGBaseEditor(QWidget):
+class PMGBaseEditor(PMAbstractEditor):
     signal_focused_in: Signal = None
+    signal_new_requested: Signal = Signal(str, int)  # 文件路径；文件的打开模式（目前都是0）
     signal_save_requested: Signal = Signal()
     signal_request_find_in_path: Signal = Signal(str)
 
@@ -228,6 +230,7 @@ class PMGBaseEditor(QWidget):
         self.text_edit.signal_save.connect(self.save)
         self.text_edit.signal_text_modified.connect(lambda: self.slot_modification_changed(True))
         self.text_edit.cursorPositionChanged.connect(self.show_cursor_pos)
+        self.text_edit.signal_file_dropped.connect(lambda name: self.signal_new_requested.emit(name, 0))
         self.find_dialog = FindDialog(parent=self, text_editor=self)
         self.goto_line_dialog = GotoLineDialog(parent=self)
         layout = QVBoxLayout()
@@ -499,14 +502,6 @@ class PMGBaseEditor(QWidget):
         """
         return self._path
 
-    def default_save_path(self) -> str:
-        """
-        获取当前默认存储为的路径
-         Default directory.
-        :return:
-        """
-        return ''
-
     def set_path(self, path: str) -> None:
         """
         设置文件路径
@@ -739,12 +734,3 @@ class PMGBaseEditor(QWidget):
             self.text_edit.load_color_scheme({'keyword': '#101e96'})
         else:
             raise ValueError('unrecognized input color scheme name %s' % color_scheme_name)
-
-    def slot_code_format(self):
-        pass
-
-    def slot_code_run(self):
-        pass
-
-    def slot_code_sel_run(self):
-        pass

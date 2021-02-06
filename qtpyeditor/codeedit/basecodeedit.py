@@ -9,8 +9,9 @@ import time
 from itertools import groupby
 from queue import Queue
 
+from PySide2.QtGui import QDropEvent
 from qtpy.QtWidgets import QAction
-from qtpy.QtCore import QRegExp, Qt, QModelIndex, Signal, QThread, QCoreApplication, QTimer
+from qtpy.QtCore import QRegExp, Qt, QModelIndex, Signal, QThread, QCoreApplication, QTimer, QUrl
 from qtpy.QtWidgets import QApplication, QFileDialog, QTextEdit, QTabWidget, \
     QMessageBox, QListWidget, QListWidgetItem, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPlainTextEdit, QShortcut
 from qtpy.QtGui import QTextCursor, QKeyEvent, QMouseEvent, QIcon, QKeySequence, QFocusEvent, QColor, QTextFormat, \
@@ -73,7 +74,7 @@ class PMBaseCodeEdit(QCodeEditor):
     signal_focused_in = Signal(QFocusEvent)
     signal_idle = Signal()
     signal_text_modified = Signal()  # If status changed from unmodified to modified, this signal emits.
-
+    signal_file_dropped = Signal(str)
     UPDATE_CODE_HIGHLIGHT = 1
 
     def __init__(self, parent=None):
@@ -123,7 +124,8 @@ class PMBaseCodeEdit(QCodeEditor):
                     focus_widget: QWidget = QApplication.focusWidget()
                     self.highlighter.rehighlight()
                     self.text_modified_signal_allowed = True
-                    focus_widget.setFocus()
+                    if focus_widget is not None:
+                        focus_widget.setFocus()
 
     def focusInEvent(self, event: 'QFocusEvent') -> None:
         self.signal_focused_in.emit(event)
@@ -627,6 +629,32 @@ class PMBaseCodeEdit(QCodeEditor):
 
     def textCursor(self) -> QTextCursor:
         return super(PMBaseCodeEdit, self).textCursor()
+
+    def dragEnterEvent(self, QDragEnterEvent):  # 3
+        print('Drag Enter')
+        if QDragEnterEvent.mimeData().hasText():
+            QDragEnterEvent.acceptProposedAction()
+            print()
+
+    def dragMoveEvent(self, QDragMoveEvent):  # 4
+        # print('Drag Move')
+        pass
+
+    def dragLeaveEvent(self, QDragLeaveEvent):  # 5
+        # print('Drag Leave')
+        pass
+
+    def dropEvent(self, drop_event: QDropEvent):  # 6
+        print('Drag Drop')
+        url: QUrl = None
+        urls = drop_event.mimeData().urls()
+        for url in urls:
+            try:
+                file = url.toLocalFile()
+                self.signal_file_dropped.emit(file)
+            except:
+                import traceback
+                traceback.print_exc()
 
 
 if __name__ == '__main__':
