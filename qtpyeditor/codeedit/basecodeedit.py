@@ -9,41 +9,75 @@ import time
 from itertools import groupby
 from queue import Queue
 
-from PySide2.QtGui import QDropEvent
+from PySide2.QtGui import QDropEvent, QPixmap
+
 from qtpy.QtWidgets import QAction
 from qtpy.QtCore import QRegExp, Qt, QModelIndex, Signal, QThread, QCoreApplication, QTimer, QUrl
 from qtpy.QtWidgets import QApplication, QFileDialog, QTextEdit, QTabWidget, \
-    QMessageBox, QListWidget, QListWidgetItem, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPlainTextEdit, QShortcut
+    QMessageBox, QListWidget, QListWidgetItem, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPlainTextEdit, QShortcut, \
+    QTableWidget, QTableWidgetItem, QHeaderView
 from qtpy.QtGui import QTextCursor, QKeyEvent, QMouseEvent, QIcon, QKeySequence, QFocusEvent, QColor, QTextFormat, \
     QPainter, QTextDocument, QTextBlock
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, TYPE_CHECKING
 
 from qtpyeditor.highlighters.python import PythonHighlighter
 from qtpyeditor.syntaxana import getIndent
 
 from qtpyeditor.linenumber import QCodeEditor
 
+# from pmgwidgets import create_icon
 
-class AutoCompList(QListWidget):
+if TYPE_CHECKING:
+    from jedi.api import Completion
+
+
+def create_icons():
+    icons = {}
+    icon_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'icons', 'autocomp')
+    for icon_file_name in os.listdir(icon_folder):
+        icon_abso_path = os.path.join(icon_folder, icon_file_name)
+        icon1 = QIcon()  # create_icon(icon_abso_path)
+        icon1.addPixmap(QPixmap(icon_abso_path), QIcon.Normal, QIcon.Off)
+        # print(icon1)
+        print(icon_file_name)
+        icons[icon_file_name[:-4]] = icon1
+        print(icon_file_name)
+    return icons
+
+
+class AutoCompList(QTableWidget):
+    # {'module':}  # , class, instance, function, param, path, keyword, property and statement.'}
+    ROLE_NAME = 15
+    ROLE_TYPE = 16
+    ROLE_COMPLETE = 17
+
     def __init__(self, parent: 'PMBaseCodeEdit' = None):
         super().__init__(parent)
         self._parent: 'PMBaseCodeEdit' = parent
-        self.autocomp_list: List[str] = []
         self.last_show_time = 0
+        self.icons = create_icons()
+        self.verticalHeader().setDefaultSectionSize(20)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.horizontalHeader().hide()
+        self.setStyleSheet("AutoCompList{selection-background-color: #999999;}");
 
-    def can_show(self):
-        if time.time() - self.last_show_time < 1:
-            return False
-        return True
+    def verticalHeader(self) -> QHeaderView:
+        return super(AutoCompList, self).verticalHeader()
 
     def show(self) -> None:
         self.last_show_time = time.time()
         super().show()
 
     def hide_autocomp(self):
-        self.autocomp_list = []
+        """
+        隐藏自动补全菜单并且主界面设置焦点。
+        :return:
+        """
         self.hide()
         self._parent.setFocus()
+
+    def count(self):
+        return self.rowCount()
 
     def keyPressEvent(self, e: QKeyEvent) -> None:
         if self.isVisible():
@@ -51,6 +85,7 @@ class AutoCompList(QListWidget):
                 self._parent._insert_autocomp()
                 self._parent.setFocus()
                 e.accept()
+                print('return!')
                 return
             elif e.key() == Qt.Key_Escape:
                 self.hide()
@@ -62,16 +97,69 @@ class AutoCompList(QListWidget):
                 return
             elif e.key() == Qt.Key_Left or e.key() == Qt.Key_Right:
                 self.hide_autocomp()
+            elif e.key() == Qt.Key_Control:  # 按下Ctrl键时，不关闭界面，因为可能存在快捷键。
+                pass
             else:
+                if (Qt.Key_F1 <= e.key() <= Qt.Key_F12):
+                    index = e.key() - Qt.Key_F1 + 1
+                    if 0 <= index < self.count():
+                        self.setCurrentItem(self.item(index, 0))
+                        self._parent._insert_autocomp()
+                        self._parent.setFocus()
+                        self.hide()
+                        return
                 self.hide_autocomp()
+                e.ignore()
+                return
         super().keyPressEvent(e)
         e.ignore()
+
+    def set_completions(self, completions: List['Completion']):
+        """
+        module, class, instance, function, param, path, keyword, property and statement.
+        :param completions:
+        :return:
+        """
+
+        print(completions)
+        self.setRowCount(0)
+        self.items_list = []
+        self.setRowCount(len(completions))
+        self.setColumnCount(1)
+        labels = []
+        for i, completion in enumerate(completions):
+            item = QTableWidgetItem(completion.name)
+
+            item.setData(AutoCompList.ROLE_NAME, completion.name)
+            item.setData(AutoCompList.ROLE_TYPE, completion.type)
+            item.setData(AutoCompList.ROLE_COMPLETE, completion.complete)
+            item.setText(completion.name)
+            if i < 100:  # 当条目数太多的时候，不能添加图标，否则速度会非常慢
+                icon = self.icons.get(completion.type)
+                if icon is not None:
+                    item.setIcon(icon)
+                else:
+                    print(completion.complete, completion.name, completion.type)
+            # print(i, 0, item)
+            self.setItem(i, 0, item)
+            if 1 <= i <= 12:
+                labels.append('F' + str(i))
+            else:
+                labels.append('')
+        self.setVerticalHeaderLabels(labels)
+        self.show()
+        self.setFocus()
+        self.setCurrentItem(self.item(0, 0))
+
+    def get_complete(self, row: int) -> Tuple[str, str]:
+        return self.item(row, 0).data(AutoCompList.ROLE_COMPLETE), self.item(row, 0).data(AutoCompList.ROLE_TYPE)
 
 
 class PMBaseCodeEdit(QCodeEditor):
     # cursorPositionChanged = Signal()
     signal_save = Signal()
-    signal_focused_in = Signal(QFocusEvent)
+    signal_focused_in = Signal(
+        QFocusEvent)  # Signal Focused in . But as it was too often triggered, I use click event instead.
     signal_idle = Signal()
     signal_text_modified = Signal()  # If status changed from unmodified to modified, this signal emits.
     signal_file_dropped = Signal(str)
@@ -127,10 +215,6 @@ class PMBaseCodeEdit(QCodeEditor):
                     if focus_widget is not None:
                         focus_widget.setFocus()
 
-    def focusInEvent(self, event: 'QFocusEvent') -> None:
-        self.signal_focused_in.emit(event)
-        super().focusInEvent(event)
-
     def on_autocomp_signal_received(self, text_cursor_pos: tuple, completions: List['jedi.api.classes.Completion']):
         '''
         当收到自动补全提示信号时，执行的函数。
@@ -169,16 +253,7 @@ class PMBaseCodeEdit(QCodeEditor):
         self._last_text = self.toPlainText()
 
     def _insert_autocomp(self, e: QModelIndex = None):
-        row = self.popup_hint_widget.currentRow()
-        if 0 <= row < len(self.popup_hint_widget.autocomp_list):
-            # if self._get_nearby_text()[-1] in '+-*/\\=\'\"[]\{\}(), '
-            self.insertPlainText(self.popup_hint_widget.autocomp_list[row])
-            textcursor: QTextCursor = self.textCursor()
-            word = self.get_word(textcursor.blockNumber(), textcursor.columnNumber())
-            print('word', word)
-            if word in self.highlighter.KEYWORDS:
-                self.insertPlainText(' ')
-            self.popup_hint_widget.hide()
+        raise NotImplementedError
 
     def _get_nearby_text(self):
         block_text = self.textCursor().block().text()
@@ -207,19 +282,7 @@ class PMBaseCodeEdit(QCodeEditor):
         self.autocomp_thread.text = self.toPlainText()
 
     def autocomp_show(self, completions: list):
-        self.popup_hint_widget.clear()
-        l = []
-        if len(completions) != 0:
-            for completion in completions:
-                l.append(completion.complete)
-                self.popup_hint_widget.addItem(
-                    QListWidgetItem(completion.name))
-            self.popup_hint_widget.show()
-            self.popup_hint_widget.setFocus()
-            self.popup_hint_widget.setCurrentRow(0)
-        else:
-            self.popup_hint_widget.hide()
-        self.popup_hint_widget.autocomp_list = l
+        raise NotImplementedError
 
     def _get_textcursor_pos(self) -> Tuple[int, int]:
         return self.textCursor().blockNumber(), self.textCursor().columnNumber()
@@ -227,6 +290,7 @@ class PMBaseCodeEdit(QCodeEditor):
     def mousePressEvent(self, a0: QMouseEvent) -> None:
         if self.popup_hint_widget.isVisible():
             self.popup_hint_widget.hide_autocomp()
+        self.signal_focused_in.emit(None)
         super().mousePressEvent(a0)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -286,17 +350,19 @@ class PMBaseCodeEdit(QCodeEditor):
     def on_backspace(self, key_backspace_event: QKeyEvent):
         cursor: QTextCursor = self.textCursor()
         cursor.beginEditBlock()
-        text = cursor.block().text()
-        nearby_text = self._get_nearby_text()
-        move_left = (cursor.columnNumber()) % 4
-        if move_left == 0:
-            move_left = 4
-        if nearby_text.isspace():
+        previous_text = cursor.block().text()[:cursor.positionInBlock()]
+        if previous_text.strip() == '':
+            move_left = (cursor.columnNumber()) % 4
+            if cursor.positionInBlock() == 0:
+                move_left = 1  # 如果位于一行起始位置，就向左删除一个。
+            else:
+                if move_left == 0:  # 如果不位于起始位置且余数等于0，就向左删除一些。
+                    move_left = 4
+
             for i in range(move_left):
                 cursor.deletePreviousChar()
-
         else:
-            super().keyPressEvent(key_backspace_event)
+            cursor.deletePreviousChar()
         cursor.endEditBlock()
 
     def on_return_pressed(self):
@@ -341,10 +407,8 @@ class PMBaseCodeEdit(QCodeEditor):
             cursor.setPosition(start)
             current_line = cursor.blockNumber()
             last_line = current_line
-            print(start_line, end_line, current_line)
             while current_line <= end_line:
                 line_text, indent = getIndent(cursor.block().text())
-                print(current_line, line_text, indent)
                 if line_text.startswith('#'):
                     cursor.movePosition(
                         QTextCursor.NextCharacter, QTextCursor.MoveAnchor, indent)
@@ -360,7 +424,6 @@ class PMBaseCodeEdit(QCodeEditor):
 
             cursor.movePosition(QTextCursor.StartOfLine)
         else:
-            print('comment!')
             cursor.movePosition(QTextCursor.StartOfLine)
             line_text, indent = getIndent(cursor.block().text())
             if line_text.startswith('#'):
@@ -439,8 +502,6 @@ class PMBaseCodeEdit(QCodeEditor):
                 pos = cursor.position()
                 if lastPos == pos:
                     break
-
-                print('end loop', pos, start)
             cursor.setPosition(start)
             cursor.movePosition(QTextCursor.NextCharacter,
                                 QTextCursor.KeepAnchor, end - start)
@@ -645,7 +706,6 @@ class PMBaseCodeEdit(QCodeEditor):
         pass
 
     def dropEvent(self, drop_event: QDropEvent):  # 6
-        print('Drag Drop')
         url: QUrl = None
         urls = drop_event.mimeData().urls()
         for url in urls:
@@ -659,6 +719,17 @@ class PMBaseCodeEdit(QCodeEditor):
 
 if __name__ == '__main__':
     app = QApplication([])
-    e = PMBaseCodeEdit()
+    e = AutoCompList()
     e.show()
+
+
+    class A():
+        pass
+
+
+    c = A()
+    c.name = 'aaaaa'
+    c.type = 'module'
+    c.complete = 'aaa'
+    e.set_completions([c, c, c, c])
     app.exec_()

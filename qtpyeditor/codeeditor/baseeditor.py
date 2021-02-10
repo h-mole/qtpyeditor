@@ -563,31 +563,31 @@ class PMGBaseEditor(PMAbstractEditor):
         self._action_autocomp = QAction(QCoreApplication.translate("PMGBaseEditor", 'AutoComp'), self.text_edit)
 
         # 设置快捷键
-        self._shortcut_format = QShortcut(QKeySequence('Ctrl+Alt+F'), self.text_edit)
+        self._shortcut_format = QShortcut(QKeySequence('Ctrl+Alt+F'), self.text_edit, context=Qt.WidgetShortcut)
         self._action_format.setShortcut(QKeySequence('Ctrl+Alt+F'))
 
-        self._shortcut_autocomp = QShortcut(QKeySequence('Ctrl+P'), self.text_edit)
+        self._shortcut_autocomp = QShortcut(QKeySequence('Ctrl+P'), self.text_edit, context=Qt.WidgetShortcut)
         self._action_autocomp.setShortcut(QKeySequence("Ctrl+P"))
 
-        self._shortcut_run = QShortcut(QKeySequence('Ctrl+R'), self.text_edit)
+        self._shortcut_run = QShortcut(QKeySequence('Ctrl+R'), self.text_edit, context=Qt.WidgetShortcut)
         self._action_run_code.setShortcut(QKeySequence('Ctrl+R'))
 
-        self._shortcut_run_sel = QShortcut(QKeySequence('F9'), self.text_edit)
+        self._shortcut_run_sel = QShortcut(QKeySequence('F9'), self.text_edit, context=Qt.WidgetShortcut)
         self._action_run_sel_code.setShortcut(QKeySequence('F9'))
 
         self._action_save.setShortcut(QKeySequence('Ctrl+S'))
-        self._shortcut_save = QShortcut(QKeySequence('Ctrl+S'), self.text_edit)
+        self._shortcut_save = QShortcut(QKeySequence('Ctrl+S'), self.text_edit, context=Qt.WidgetShortcut)
 
         self._action_find.setShortcut(QKeySequence('Ctrl+F'))
-        self._shortcut_find = QShortcut(QKeySequence('Ctrl+F'), self.text_edit)
+        self._shortcut_find = QShortcut(QKeySequence('Ctrl+F'), self.text_edit, context=Qt.WidgetShortcut)
 
         self._action_replace.setShortcut(QKeySequence('Ctrl+H'))
-        self._shortcut_replace = QShortcut(QKeySequence('Ctrl+H'), self.text_edit)
+        self._shortcut_replace = QShortcut(QKeySequence('Ctrl+H'), self.text_edit, context=Qt.WidgetShortcut)
 
         self._action_find_in_path.setShortcut(QKeySequence('Ctrl+Shift+F'))
-        self._shortcut_find_in_path = QShortcut(QKeySequence('Ctrl+Shift+F'), self.text_edit)
+        self._shortcut_find_in_path = QShortcut(QKeySequence('Ctrl+Shift+F'), self.text_edit, context=Qt.WidgetShortcut)
 
-        self._shortcut_goto = QShortcut(QKeySequence('Ctrl+G'), self.text_edit)
+        self._shortcut_goto = QShortcut(QKeySequence('Ctrl+G'), self.text_edit, context=Qt.WidgetShortcut)
 
         self._action_add_breakpoint = QAction(QIcon(os.path.join(self.icon_path, 'icons/breakpoint.svg')),
                                               QCoreApplication.translate("PMGBaseEditor", 'Add Breakpoint'),

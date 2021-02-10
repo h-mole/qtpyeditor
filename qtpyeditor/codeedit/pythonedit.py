@@ -3,17 +3,22 @@
 # @Author: Zhanyi Hou
 # @Email: 1295752786@qq.com
 # @File: pythonedit.py
+import logging
 import time
 import re
-from typing import Tuple, List
+from typing import Tuple, List, TYPE_CHECKING
 
-from qtpy.QtGui import QTextCursor, QMouseEvent, QKeyEvent
+from qtpy.QtGui import QTextCursor, QMouseEvent, QKeyEvent, QTextBlock
 from qtpy.QtWidgets import QLabel, QListWidgetItem, QApplication
 from qtpy.QtCore import QPoint, QModelIndex, Signal
 
 from qtpyeditor.codeedit import PMBaseCodeEdit
 from qtpyeditor.highlighters import PythonHighlighter
 from qtpyeditor.Utilities import AutoCompThread
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+if TYPE_CHECKING:
+    from jedi.api import Completion
 
 
 class PMPythonCodeEdit(PMBaseCodeEdit):
@@ -37,20 +42,21 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         self.hint_widget = QLabel('', parent=self)
         self.hint_widget.setVisible(False)
 
-    def on_autocomp_signal_received(self, text_cursor_pos: tuple, completions: List['jedi.api.classes.Completion']):
+    def on_autocomp_signal_received(self, text_cursor_content: tuple, completions: List['jedi.api.Completion']):
         '''
         当收到自动补全提示信号时，执行的函数。
-        :param text_cursor_pos:
+        :param text_cursor_content:(row,col,hint_when_completion_triggered)
         :param completions:
         :return:
         '''
-        current_cursor_pos = self._get_textcursor_pos()
-        if current_cursor_pos[0] + 1 == text_cursor_pos[0] and current_cursor_pos[1] == text_cursor_pos[1]:
+
+        hint = self._get_hint()
+        logger.debug(text_cursor_content[2],hint)
+        if hint.startswith(text_cursor_content[2]):
             if len(completions) == 1:
                 if completions[0].name == self._get_hint():
                     self.hide_autocomp()
                     return
-
             self.autocomp_show(completions)
         else:
             self.hide_autocomp()
@@ -66,14 +72,19 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
             cursor_pos.x() + 5, cursor_pos.y() + 20, 150, 200)
         self._request_autocomp()
 
-
     def _insert_autocomp(self, e: QModelIndex = None):
         row = self.popup_hint_widget.currentRow()
-        if 0 <= row < len(self.popup_hint_widget.autocomp_list):
-            self.insertPlainText(self.popup_hint_widget.autocomp_list[row])
+        if 0 <= row < self.popup_hint_widget.count():
+            complete, word_type = self.popup_hint_widget.get_complete(row)
+            self.insertPlainText(complete)
             textcursor: QTextCursor = self.textCursor()
             word = self.get_word(textcursor.blockNumber(), textcursor.columnNumber() - 1)
-            if word in self.highlighter.KEYWORDS:
+            if word_type == 'function':
+                self.insertPlainText('()')
+                tc = self.textCursor()
+                tc.movePosition(QTextCursor.PreviousCharacter)
+                self.setTextCursor(tc)
+            elif word_type == 'keyword':
                 self.insertPlainText(' ')
             self.popup_hint_widget.hide()
 
@@ -103,17 +114,10 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         self.autocomp_thread.text_cursor_pos = (pos[0] + 1, pos[1])
         self.autocomp_thread.text = self.toPlainText()
 
-    def autocomp_show(self, completions: list):
-        self.popup_hint_widget.clear()
+    def autocomp_show(self, completions: List['Completion']):
         l = []
         if len(completions) != 0:
-            for completion in completions:
-                l.append(completion.complete)
-                self.popup_hint_widget.addItem(
-                    QListWidgetItem(completion.name))
-            self.popup_hint_widget.show()
-            self.popup_hint_widget.setFocus()
-            self.popup_hint_widget.setCurrentRow(0)
+            self.popup_hint_widget.set_completions(completions)
         else:
             self.popup_hint_widget.hide()
         self.popup_hint_widget.autocomp_list = l
