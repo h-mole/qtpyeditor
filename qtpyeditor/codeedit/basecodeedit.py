@@ -60,6 +60,8 @@ class AutoCompList(QTableWidget):
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.horizontalHeader().hide()
         self.setStyleSheet("AutoCompList{selection-background-color: #999999;}");
+        self.verticalHeader().setMinimumWidth(20)
+
 
     def verticalHeader(self) -> QHeaderView:
         return super(AutoCompList, self).verticalHeader()
@@ -97,16 +99,18 @@ class AutoCompList(QTableWidget):
                 return
             elif e.key() == Qt.Key_Left or e.key() == Qt.Key_Right:
                 self.hide_autocomp()
-            elif e.key() == Qt.Key_Control:  # 按下Ctrl键时，不关闭界面，因为可能存在快捷键。
+            elif e.key() == Qt.Key_Control or e.key()==Qt.Key_Alt:  # 按下Ctrl键时，不关闭界面，因为可能存在快捷键。
                 pass
             else:
-                if (Qt.Key_F1 <= e.key() <= Qt.Key_F12):
-                    index = e.key() - Qt.Key_F1 + 1
+                if (Qt.Key_0 <= e.key() <= Qt.Key_9) and (
+                        e.modifiers() == Qt.ControlModifier or e.modifiers() == Qt.AltModifier):
+                    index = e.key() - Qt.Key_0
                     if 0 <= index < self.count():
                         self.setCurrentItem(self.item(index, 0))
                         self._parent._insert_autocomp()
                         self._parent.setFocus()
                         self.hide()
+                        e.accept()
                         return
                 self.hide_autocomp()
                 e.ignore()
@@ -142,8 +146,8 @@ class AutoCompList(QTableWidget):
                     print(completion.complete, completion.name, completion.type)
             # print(i, 0, item)
             self.setItem(i, 0, item)
-            if 1 <= i <= 12:
-                labels.append('F' + str(i))
+            if 0 <= i <= 9:
+                labels.append(str(i))
             else:
                 labels.append('')
         self.setVerticalHeaderLabels(labels)
@@ -153,6 +157,9 @@ class AutoCompList(QTableWidget):
 
     def get_complete(self, row: int) -> Tuple[str, str]:
         return self.item(row, 0).data(AutoCompList.ROLE_COMPLETE), self.item(row, 0).data(AutoCompList.ROLE_TYPE)
+
+    def get_text(self, row: int) -> str:
+        return self.item(row, 0).text()
 
 
 class PMBaseCodeEdit(QCodeEditor):
