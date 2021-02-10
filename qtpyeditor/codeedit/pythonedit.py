@@ -15,6 +15,7 @@ from qtpy.QtCore import QPoint, QModelIndex, Signal
 from qtpyeditor.codeedit import PMBaseCodeEdit
 from qtpyeditor.highlighters import PythonHighlighter
 from qtpyeditor.Utilities import AutoCompThread
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 if TYPE_CHECKING:
@@ -51,7 +52,7 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         '''
 
         hint = self._get_hint()
-        logger.debug('hint_when_completion_triggered:{0},current_hint:{1}'.format(text_cursor_content[2],hint))
+        logger.debug('hint_when_completion_triggered:{0},current_hint:{1}'.format(text_cursor_content[2], hint))
         if hint.startswith(text_cursor_content[2]):
             if len(completions) == 1:
                 if completions[0].name == self._get_hint():
@@ -76,8 +77,11 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         row = self.popup_hint_widget.currentRow()
         if 0 <= row < self.popup_hint_widget.count():
             complete, word_type = self.popup_hint_widget.get_complete(row)
-            word=self.popup_hint_widget.get_text(row)
-            self.insertPlainText(word.lstrip(self._get_hint()))
+            word = self.popup_hint_widget.get_text(row)
+            if not word.startswith(self._get_hint()):
+                return
+            comp = word[len(self._get_hint()):]
+            self.insertPlainText(comp)
             textcursor: QTextCursor = self.textCursor()
             word = self.get_word(textcursor.blockNumber(), textcursor.columnNumber() - 1)
             if word_type == 'function':
