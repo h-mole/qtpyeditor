@@ -3,6 +3,7 @@
 # @Author: Zhanyi Hou
 # @Email: 1295752786@qq.com
 # @File: basecodeedit.py
+import logging
 import os
 import re
 import time
@@ -12,7 +13,7 @@ from queue import Queue
 from PySide2.QtGui import QDropEvent, QPixmap
 
 from qtpy.QtWidgets import QAction
-from qtpy.QtCore import QRegExp, Qt, QModelIndex, Signal, QThread, QCoreApplication, QTimer, QUrl
+from qtpy.QtCore import QRegExp, Qt, QModelIndex, Signal, QThread, QCoreApplication, QTimer, QUrl, QSize
 from qtpy.QtWidgets import QApplication, QFileDialog, QTextEdit, QTabWidget, \
     QMessageBox, QListWidget, QListWidgetItem, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPlainTextEdit, QShortcut, \
     QTableWidget, QTableWidgetItem, QHeaderView
@@ -30,6 +31,10 @@ from qtpyeditor.linenumber import QCodeEditor
 if TYPE_CHECKING:
     from jedi.api import Completion
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+logger.setLevel(logging.DEBUG)
+
 
 def create_icons():
     icons = {}
@@ -39,9 +44,9 @@ def create_icons():
         icon1 = QIcon()  # create_icon(icon_abso_path)
         icon1.addPixmap(QPixmap(icon_abso_path), QIcon.Normal, QIcon.Off)
         # print(icon1)
-        print(icon_file_name)
+        logging.debug('loading {0}'.format(icon_file_name))
         icons[icon_file_name[:-4]] = icon1
-        print(icon_file_name)
+
     return icons
 
 
@@ -50,6 +55,7 @@ class AutoCompList(QTableWidget):
     ROLE_NAME = 15
     ROLE_TYPE = 16
     ROLE_COMPLETE = 17
+    ROLE_COMPLETION = 18
 
     def __init__(self, parent: 'PMBaseCodeEdit' = None):
         super().__init__(parent)
@@ -61,6 +67,8 @@ class AutoCompList(QTableWidget):
         self.horizontalHeader().hide()
         self.setStyleSheet("AutoCompList{selection-background-color: #999999;}");
         self.verticalHeader().setMinimumWidth(20)
+        # self.horizontalHeader().setMinimumWidth(300)
+        # self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
 
     def verticalHeader(self) -> QHeaderView:
@@ -99,7 +107,7 @@ class AutoCompList(QTableWidget):
                 return
             elif e.key() == Qt.Key_Left or e.key() == Qt.Key_Right:
                 self.hide_autocomp()
-            elif e.key() == Qt.Key_Control or e.key()==Qt.Key_Alt:  # 按下Ctrl键时，不关闭界面，因为可能存在快捷键。
+            elif e.key() == Qt.Key_Control or e.key() == Qt.Key_Alt:  # 按下Ctrl键时，不关闭界面，因为可能存在快捷键。
                 pass
             else:
                 if (Qt.Key_0 <= e.key() <= Qt.Key_9) and (
@@ -124,8 +132,7 @@ class AutoCompList(QTableWidget):
         :param completions:
         :return:
         """
-
-        print(completions)
+        t0 = time.time()
         self.setRowCount(0)
         self.items_list = []
         self.setRowCount(len(completions))
@@ -133,18 +140,15 @@ class AutoCompList(QTableWidget):
         labels = []
         for i, completion in enumerate(completions):
             item = QTableWidgetItem(completion.name)
-
             item.setData(AutoCompList.ROLE_NAME, completion.name)
-            item.setData(AutoCompList.ROLE_TYPE, completion.type)
-            item.setData(AutoCompList.ROLE_COMPLETE, completion.complete)
+
+            item.setData(AutoCompList.ROLE_COMPLETION, completion)
             item.setText(completion.name)
-            if i < 100:  # 当条目数太多的时候，不能添加图标，否则速度会非常慢
+            if i < 30:  # 当条目数太多的时候，不能添加图标，否则速度会非常慢
                 icon = self.icons.get(completion.type)
                 if icon is not None:
                     item.setIcon(icon)
-                else:
-                    print(completion.complete, completion.name, completion.type)
-            # print(i, 0, item)
+
             self.setItem(i, 0, item)
             if 0 <= i <= 9:
                 labels.append(str(i))
@@ -154,9 +158,12 @@ class AutoCompList(QTableWidget):
         self.show()
         self.setFocus()
         self.setCurrentItem(self.item(0, 0))
+        t1 = time.time()
+        logger.info('completion time:{0},completion list length:{1}'.format(t1 - t0, len(completions)))
 
     def get_complete(self, row: int) -> Tuple[str, str]:
-        return self.item(row, 0).data(AutoCompList.ROLE_COMPLETE), self.item(row, 0).data(AutoCompList.ROLE_TYPE)
+        return self.item(row, 0).data(AutoCompList.ROLE_COMPLETION).complete, self.item(row, 0).data(
+            AutoCompList.ROLE_COMPLETION).type
 
     def get_text(self, row: int) -> str:
         return self.item(row, 0).text()

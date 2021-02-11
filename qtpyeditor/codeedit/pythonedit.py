@@ -70,7 +70,9 @@ class PMPythonCodeEdit(PMBaseCodeEdit):
         self._get_textcursor_pos()
         cursor_pos = self.cursorRect()
         self.popup_hint_widget.setGeometry(
-            cursor_pos.x() + 5, cursor_pos.y() + 20, 150, 200)
+            cursor_pos.x() + 5, cursor_pos.y() + 20,
+            self.popup_hint_widget.sizeHint().width(),
+            self.popup_hint_widget.sizeHint().height())
         self._request_autocomp()
 
     def _insert_autocomp(self, e: QModelIndex = None):
